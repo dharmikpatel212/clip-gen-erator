@@ -1,0 +1,9 @@
+uploads/*
+!uploads/.gitkeep
+outputs/*
+!outputs/.gitkeep
+usage.json
+__pycache__/
+*.pyc
+.venv/
+node_modules/
