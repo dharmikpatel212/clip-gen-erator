@@ -1,0 +1,79 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8" />
+<meta name="viewport" content="width=device-width, initial-scale=1" />
+<title>Clip Generator</title>
+<style>
+  body { font-family: -apple-system, sans-serif; max-width: 560px; margin: 60px auto; padding: 0 20px; color: #1a1a1a; }
+  h1 { font-size: 22px; }
+  input, button, select { font-size: 15px; padding: 10px; margin-top: 10px; width: 100%; box-sizing: border-box; }
+  button { background: #111; color: white; border: none; border-radius: 6px; cursor: pointer; }
+  button:disabled { background: #999; }
+  .clip { padding: 10px 0; border-bottom: 1px solid #eee; }
+  #status { margin-top: 16px; color: #555; }
+</style>
+</head>
+<body>
+  <h1>🎬 Clip Generator</h1>
+  <p>Upload a long video. Get back auto-clipped, captioned, watermarked shorts.</p>
+
+  <form id="form">
+    <input type="file" id="file" accept="video/*" required />
+    <label>Number of clips
+      <select id="numClips">
+        <option value="1">1</option>
+        <option value="2">2</option>
+        <option value="3" selected>3</option>
+      </select>
+    </label>
+    <input type="text" id="watermark" placeholder="Watermark text (e.g. @clipverse.en)" value="@yourhandle" />
+    <button type="submit" id="submitBtn">Generate clips</button>
+  </form>
+
+  <div id="status"></div>
+  <div id="results"></div>
+
+<script>
+const form = document.getElementById('form');
+const statusEl = document.getElementById('status');
+const resultsEl = document.getElementById('results');
+const submitBtn = document.getElementById('submitBtn');
+
+form.addEventListener('submit', async (e) => {
+  e.preventDefault();
+  const file = document.getElementById('file').files[0];
+  const numClips = document.getElementById('numClips').value;
+  const watermark = document.getElementById('watermark').value;
+  if (!file) return;
+
+  submitBtn.disabled = true;
+  statusEl.textContent = 'Processing... this can take a minute or two on CPU.';
+  resultsEl.innerHTML = '';
+
+  const fd = new FormData();
+  fd.append('file', file);
+  fd.append('num_clips', numClips);
+  fd.append('watermark_text', watermark);
+
+  try {
+    const res = await fetch('/process', { method: 'POST', body: fd });
+    const data = await res.json();
+    if (!res.ok) throw new Error(data.detail || 'Something went wrong');
+
+    statusEl.textContent = `Done. Clips used: ${data.clips_used} (remaining on free tier: ${data.clips_remaining})`;
+    data.clips.forEach(c => {
+      const div = document.createElement('div');
+      div.className = 'clip';
+      div.innerHTML = `<video src="${c.url}" controls width="240"></video><br/><a href="${c.url}" download>${c.filename}</a>`;
+      resultsEl.appendChild(div);
+    });
+  } catch (err) {
+    statusEl.textContent = 'Error: ' + err.message;
+  } finally {
+    submitBtn.disabled = false;
+  }
+});
+</script>
+</body>
+</html>
